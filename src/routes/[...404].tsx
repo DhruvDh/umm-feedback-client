@@ -57,8 +57,9 @@ export default function Home() {
       const { data, error } = await supabase
         .from("feedback")
         .select("*")
-        .eq("uuid", uuid)
+        .eq("id", uuid)
         .single();
+
       if (error) throw error;
 
       setFeedback(data?.response);
@@ -104,9 +105,13 @@ export default function Home() {
               return;
             } else {
               const val = JSON.parse(data);
-              setFeedback((prev) => prev + val.choices[0].delta.content);
-              console.log(val.choices[0].delta.content);
-              console.log(JSON.stringify(val.choices[0].delta.content));
+              setFeedback(
+                (prev) =>
+                  (prev === undefined ? "" : prev) +
+                  (val.choices[0].delta.content === undefined
+                    ? ""
+                    : val.choices[0].delta.content === undefined)
+              );
               if (val.choices[0].finish_reason !== null) {
                 supabase
                   .from("feedback")
@@ -132,7 +137,7 @@ export default function Home() {
   });
 
   return (
-    <main class="text-center mx-auto p-4 prose">
+    <main class="mx-auto p-4 prose">
       <h1> {getPrompt()?.reqName}</h1>
       <h3> {getPrompt()?.grade}</h3>
       <h3>{getPrompt()?.reason}</h3>
