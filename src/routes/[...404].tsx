@@ -110,7 +110,7 @@ export default function Home() {
                   (prev === undefined ? "" : prev) +
                   (val.choices[0].delta.content === undefined
                     ? ""
-                    : val.choices[0].delta.content === undefined)
+                    : val.choices[0].delta.content)
               );
               if (val.choices[0].finish_reason !== null) {
                 supabase
