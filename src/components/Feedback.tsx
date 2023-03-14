@@ -76,8 +76,8 @@ export default function Home() {
 
       if (error) throw error;
 
-      setFoundInDB(true);
       setFeedback(data[0]?.response);
+      setFoundInDB(true);
     } catch (e) {
       console.log(JSON.stringify(e));
       await fetchEventSource(
@@ -188,7 +188,7 @@ export default function Home() {
           <blockquote>Something is wrong. Cannot generate feedback.</blockquote>
         }
       >
-        <Match when={foundInDB()}>
+        <Match when={foundInDB() && !connectionOpened()}>
           <blockquote>Found previously generated feedback.</blockquote>
         </Match>
         <Match when={connectionOpened()}>
