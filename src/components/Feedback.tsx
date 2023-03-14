@@ -57,13 +57,13 @@ export default function Home() {
       const { data, error } = await supabase
         .from("feedback")
         .select("*")
-        .eq("id", uuid)
-        .single();
+        .eq("id", uuid);
 
       if (error) throw error;
 
-      setFeedback(data?.response);
+      setFeedback(data[0]?.response);
     } catch (e) {
+      console.log(JSON.stringify(e));
       await fetchEventSource(
         "https://uyancztmzjlekojeproj.functions.supabase.co/openai-feedback",
         {
