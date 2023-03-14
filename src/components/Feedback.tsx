@@ -1,4 +1,4 @@
-import { useParams } from "solid-start";
+import { useParams } from "@solidjs/router";
 import { createResource, createSignal, onMount } from "solid-js";
 import { createClient } from "@supabase/supabase-js";
 import type { ChatCompletionRequestMessage } from "openai";
@@ -137,7 +137,7 @@ export default function Home() {
   });
 
   return (
-    <main class="mx-auto p-4 prose">
+    <article class="mx-auto p-4 prose">
       <h1> {getPrompt()?.reqName}</h1>
       <h3> {getPrompt()?.grade}</h3>
       <h3>{getPrompt()?.reason}</h3>
@@ -148,6 +148,6 @@ export default function Home() {
           htmlExtensions: [gfmHtml()],
         })}
       />
-    </main>
+    </article>
   );
 }
