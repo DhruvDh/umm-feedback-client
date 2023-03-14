@@ -1,19 +1,21 @@
 // @refresh reload
-import { Suspense } from "solid-js";
+import { lazy, Suspense } from "solid-js";
 import {
   useLocation,
   A,
   Body,
   ErrorBoundary,
-  FileRoutes,
   Head,
   Html,
   Meta,
-  Routes,
   Scripts,
   Title,
 } from "solid-start";
+
+import { Routes, Route, Router } from "@solidjs/router";
+
 import "./root.css";
+const index = lazy(() => import("./routes/index.js"));
 
 export default function Root() {
   const location = useLocation();
@@ -21,6 +23,7 @@ export default function Root() {
     path == location.pathname
       ? "border-sky-600"
       : "border-transparent hover:border-sky-600";
+
   return (
     <Html lang="en">
       <Head>
@@ -32,7 +35,7 @@ export default function Root() {
         <Suspense>
           <ErrorBoundary>
             <Routes>
-              <FileRoutes />
+              <Route path="/:id" component={index} />
             </Routes>
           </ErrorBoundary>
         </Suspense>

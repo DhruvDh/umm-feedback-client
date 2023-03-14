@@ -15,5 +15,6 @@ export default defineConfig({
       },
     }),
     solid({ ssr: false, adapter: cloudflare({}) }),
+    // solid({ ssr: false }),
   ],
 });

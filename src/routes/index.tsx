@@ -1,5 +1,5 @@
 import { useParams } from "solid-start";
-import { createEffect, createResource, createSignal, onMount } from "solid-js";
+import { createResource, createSignal, onMount } from "solid-js";
 import { createClient } from "@supabase/supabase-js";
 import type { ChatCompletionRequestMessage } from "openai";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
@@ -48,7 +48,7 @@ const getQuery = async (uuid: string): Promise<PromptRow> => {
 
 export default function Home() {
   const params = useParams();
-  const uuid = params["404"];
+  const uuid = params["id"];
   const [feedback, setFeedback] = createSignal("");
   const [getPrompt] = createResource(uuid, getQuery);
 
