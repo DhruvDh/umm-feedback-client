@@ -93,6 +93,7 @@ export default function Home() {
             prompt_id: uuid,
           }),
           signal: ctrl.signal,
+          openWhenHidden: true,
           async onopen(response) {
             setConnectionOpened(true);
             if (
