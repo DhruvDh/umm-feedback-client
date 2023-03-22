@@ -169,9 +169,14 @@ export default function Home() {
             throw new RetriableError();
           },
           onerror(err) {
-            setConnectionMessage("Error: " + err.message);
-            ctrl.abort("Error: " + err.message);
-            throw err;
+            if (err.message.trim() == "") {
+              setConnectionMessage("Done!");
+              setFeedbackDone(true);
+            } else {
+              setConnectionMessage("Error: " + err.message);
+              ctrl.abort("Error: " + err.message);
+              throw err;
+            }
           },
         }
       );
