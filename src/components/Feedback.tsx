@@ -68,8 +68,6 @@ export default function Home() {
 
   onMount(async () => {
     if (uuid === undefined || uuid == "") return;
-    if (feedbackDone()) return;
-    if (foundInDB()) return;
 
     try {
       const { data, error } = await supabase
@@ -119,7 +117,6 @@ export default function Home() {
                 "Retriable error (something has gone wrong that is not fatal, you should be able to retry in a few minutes.): " +
                   response.statusText
               );
-              ctrl.abort("Fatal error: " + response.statusText);
 
               throw new RetriableError();
             }
@@ -160,6 +157,7 @@ export default function Home() {
             if (feedbackDone()) {
               setConnectionMessage("Done!");
               setFeedbackDone(true);
+              ctrl.abort("Done!");
             } else {
               setConnectionMessage(
                 "Connection closed unexpectedly. (something has gone wrong that is not fatal, you should be able to retry in a few minutes.)"
@@ -167,15 +165,17 @@ export default function Home() {
               ctrl.abort(
                 "Connection closed unexpectedly. (something has gone wrong that is not fatal, you should be able to retry in a few minutes.)"
               );
+
+              // if the server closes the connection unexpectedly, retry:
+              throw new RetriableError();
             }
-            // if the server closes the connection unexpectedly, retry:
-            throw new RetriableError();
           },
           onerror(err) {
             if (err.message.trim() == "") {
               setConnectionMessage("Done!");
               setFeedbackDone(true);
               ctrl.abort("Done!");
+              throw err;
             } else {
               setConnectionMessage("Error: " + err.message);
               ctrl.abort("Error: " + err.message);
