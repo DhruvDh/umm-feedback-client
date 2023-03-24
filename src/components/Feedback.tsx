@@ -68,6 +68,9 @@ export default function Home() {
 
   onMount(async () => {
     if (uuid === undefined || uuid == "") return;
+    if (feedbackDone()) return;
+    if (foundInDB()) return;
+
     try {
       const { data, error } = await supabase
         .from("feedback")
@@ -172,6 +175,7 @@ export default function Home() {
             if (err.message.trim() == "") {
               setConnectionMessage("Done!");
               setFeedbackDone(true);
+              ctrl.abort("Done!");
             } else {
               setConnectionMessage("Error: " + err.message);
               ctrl.abort("Error: " + err.message);
