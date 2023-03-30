@@ -194,6 +194,7 @@ export default function Feedback() {
       <h3> {getPrompt()?.grade}</h3>
       <h3>{getPrompt()?.reason}</h3>
       <hr />
+      <h2> AI Feedback </h2>
       <Switch
         fallback={
           <blockquote>Something is wrong. Cannot generate feedback.</blockquote>
