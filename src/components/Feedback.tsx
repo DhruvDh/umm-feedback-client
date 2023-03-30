@@ -221,7 +221,7 @@ export default function Feedback() {
           htmlExtensions: [gfmHtml()],
         })}
       />
-      <Messages messages={getPrompt()?.messages} />
+      <Messages uuid={uuid} />
     </article>
   );
 }
