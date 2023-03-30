@@ -12,6 +12,7 @@ import type { ChatCompletionRequestMessage } from "openai";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { micromark } from "micromark";
 import { gfm, gfmHtml } from "micromark-extension-gfm";
+import Messages from "./Messages";
 
 class RetriableError extends Error {}
 class FatalError extends Error {}
@@ -55,7 +56,7 @@ const getQuery = async (uuid: string): Promise<PromptRow> => {
 
 const ctrl = new AbortController();
 
-export default function Home() {
+export default function Feedback() {
   const params = useParams();
   const uuid = params["id"];
   const [feedback, setFeedback] = createSignal("");
@@ -219,6 +220,7 @@ export default function Home() {
           htmlExtensions: [gfmHtml()],
         })}
       />
+      <Messages messages={getPrompt()?.messages} />
     </article>
   );
 }
