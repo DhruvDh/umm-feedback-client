@@ -1,5 +1,6 @@
 import { useParams } from "@solidjs/router";
 import {
+  createEffect,
   createResource,
   createSignal,
   Match,
@@ -18,10 +19,13 @@ class RetriableError extends Error {}
 class FatalError extends Error {}
 
 interface PromptRow {
+  id: string;
   reqName: string;
   grade: string;
   reason: string;
   messages: ChatCompletionRequestMessage[];
+  length?: number;
+  previousPrompt?: string;
 }
 
 const supabase = createClient(
@@ -47,6 +51,7 @@ const getQuery = async (uuid: string): Promise<PromptRow> => {
   let messages: ChatCompletionRequestMessage[] = data.messages ?? [];
 
   return {
+    id: uuid,
     reqName,
     grade,
     reason,
@@ -67,9 +72,24 @@ export default function Feedback() {
   const [connectionOpened, setConnectionOpened] = createSignal(false);
   const [connectionMessage, setConnectionMessage] = createSignal("");
 
-  onMount(async () => {
-    if (uuid === undefined || uuid == "") return;
+  createEffect(() => {
+    if (uuid === undefined || uuid == "") {
+      setConnectionMessage("No ID provided.");
+    } else if (getPrompt.loading) {
+      setConnectionMessage("Loading...");
+    } else if (getPrompt.error) {
+      setConnectionMessage(
+        "Error finding ID in database. Is the URL correct?."
+      );
+    } else {
+    }
+  });
 
+  onMount(async () => {
+    if (uuid === undefined || uuid == "") {
+      setConnectionMessage("No ID provided.");
+      return;
+    }
     try {
       const { data, error } = await supabase
         .from("feedback")
@@ -79,9 +99,9 @@ export default function Feedback() {
       if (error) throw error;
 
       setFeedback(data[0]?.response);
+      setFeedbackDone(true);
       setFoundInDB(true);
     } catch (e) {
-      console.log(JSON.stringify(e));
       await fetchEventSource(
         "https://uyancztmzjlekojeproj.functions.supabase.co/openai-feedback",
         {
@@ -189,7 +209,7 @@ export default function Feedback() {
   });
 
   return (
-    <article class="mx-auto p-4 prose">
+    <article class="mx-auto p-4 prose max-w-3xl">
       <h1> {getPrompt()?.reqName}</h1>
       <h3> {getPrompt()?.grade}</h3>
       <h3>{getPrompt()?.reason}</h3>
@@ -221,7 +241,7 @@ export default function Feedback() {
           htmlExtensions: [gfmHtml()],
         })}
       />
-      <Messages uuid={uuid} />
+      <Messages uuid={uuid} feedbackDone={feedbackDone} />
     </article>
   );
 }
