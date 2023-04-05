@@ -48,6 +48,23 @@ const getQuery = async (uuid: string): Promise<PromptRow> => {
     reason = "See below.";
   }
   let messages: ChatCompletionRequestMessage[] = data.messages ?? [];
+  let previousPrompt = data.previousPrompt;
+
+  if (data["previousPrompt"] !== null) {
+    const { data, error } = await supabase
+      .from("feedback")
+      .select("*")
+      .eq("id", previousPrompt)
+      .single();
+
+    messages.push({
+      role: "assistant",
+      content: data.response,
+      name: "AI Teaching Assistant",
+    });
+  } else {
+    console.log("No previous prompt found.");
+  }
 
   return {
     id: uuid,

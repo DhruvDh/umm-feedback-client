@@ -129,8 +129,16 @@ export default function Feedback() {
               response.status < 500 &&
               response.status !== 429
             ) {
-              setConnectionMessage("Fatal error: " + response.statusText);
-              ctrl.abort("Fatal error: " + response.statusText);
+              setConnectionMessage(
+                "Fatal error: " +
+                  JSON.stringify(response) +
+                  "\nIt is likely the conversation is too long."
+              );
+              ctrl.abort(
+                "Fatal error: " +
+                  JSON.stringify(response) +
+                  "\nIt is likely the conversation is too long."
+              );
               // client-side errors are usually non-retriable:
               throw new FatalError();
             } else {
@@ -146,8 +154,16 @@ export default function Feedback() {
             // if the server emits an error message, throw an exception
             // so it gets handled by the onerror callback below:
             if (msg.event === "FatalError") {
-              setConnectionMessage("Fatal error: " + msg.data);
-              ctrl.abort("Fatal error: " + msg.data);
+              setConnectionMessage(
+                "Fatal error: " +
+                  JSON.stringify(msg) +
+                  "\nIt is likely the conversation is too long."
+              );
+              ctrl.abort(
+                "Fatal error: " +
+                  JSON.stringify(msg.data) +
+                  "\nIt is likely the conversation is too long."
+              );
 
               throw new FatalError(msg.data);
             }
