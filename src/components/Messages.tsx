@@ -86,7 +86,7 @@ const promptResponse: Array<[string, ChatCompletionRequestMessage]> = [
     },
   ],
   [
-    "Your suggestions worked for me, but I don't understand why.",
+    "Your suggestions work, but I don't understand why.",
     {
       role: "user",
       content:
@@ -122,6 +122,9 @@ export default function Messages(props: MessagesProps) {
   const [messages] = createResource(uuid, getQuery);
 
   const [notSatisfiedMessage, setNotSatisfiedMessage] = createSignal("");
+  const [notSatisfiedNote, setNotSatisfiedNote] = createSignal("", {
+    equals: false,
+  });
   const [markdown, setMarkdown] = createSignal("");
 
   createEffect(() => {
@@ -181,19 +184,40 @@ export default function Messages(props: MessagesProps) {
           <blockquote>{notSatisfiedMessage()}</blockquote>
         </Show>
 
-        <div class="space-x-3 space-y-3">
+        <div class="flex flex-col gap-2 m-6 place-content-between">
           <For each={promptResponse}>
             {(response) => (
               <button
                 class="rounded-lg p-2 border-gray-800 border-2"
-                onClick={() =>
-                  updatePrompt(uuid, [...messages().messages, response[1]])
-                }
+                onClick={() => {
+                  if (notSatisfiedNote().trim().length > 0) {
+                    updatePrompt(uuid, [
+                      ...messages().messages,
+                      response[1],
+                      {
+                        role: "user",
+                        content: notSatisfiedNote(),
+                        name: "Student",
+                      },
+                    ]);
+                  } else {
+                    updatePrompt(uuid, [...messages().messages, response[1]]);
+                  }
+                }}
               >
                 {response[0]}
               </button>
             )}
           </For>
+          <textarea
+            class="rounded-lg p-6 border-gray-800 border-2 w-full border-dashed "
+            onInput={(e) => {
+              if (e.isTrusted) {
+                setNotSatisfiedNote(e.currentTarget.value);
+              }
+            }}
+            placeholder="Optionally provide additional notes here before clicking a button above. Please keep it short, otherwise it might error out."
+          ></textarea>
         </div>
         <hr />
         <h2>Information shared with AI</h2>
