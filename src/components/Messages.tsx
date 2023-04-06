@@ -197,47 +197,49 @@ export default function Messages(props: MessagesProps) {
     <Show when={feedbackDone()}>
       <article class="mx-auto p-4 prose max-w-3xl">
         <hr />
-        <h2>Not satisfied with response?</h2>
-        You can request new feedback by clicking on one of the following buttons
-        that best describes your situation. If you want to share additional
-        notes, you can also type them in the text box below.
-        <Show when={notSatisfiedMessage().trim().length > 0}>
-          <blockquote>{notSatisfiedMessage()}</blockquote>
-        </Show>
-        <div class="flex flex-col gap-2 m-6 place-content-between">
-          <For each={promptResponse}>
-            {(response) => (
-              <button
-                class="rounded-lg p-2 border-gray-800 border-2"
-                onClick={() => {
-                  if (notSatisfiedNote().trim().length > 0) {
-                    updatePrompt(uuid, [
-                      ...messages().messages,
-                      response[1],
-                      {
-                        role: "user",
-                        content: notSatisfiedNote(),
-                        name: "Student",
-                      },
-                    ]);
-                  } else {
-                    updatePrompt(uuid, [...messages().messages, response[1]]);
-                  }
-                }}
-              >
-                {response[0]}
-              </button>
-            )}
-          </For>
-          <textarea
-            class="rounded-lg p-6 border-gray-800 border-2 w-full border-dashed "
-            onInput={(e) => {
-              if (e.isTrusted) {
-                setNotSatisfiedNote(e.currentTarget.value);
-              }
-            }}
-            placeholder="Optionally provide additional notes here before clicking a button above. Please keep it short, otherwise it might error out."
-          ></textarea>
+        <div class="rounded-3xl pl-6 pr-6 pt-0.5 pb-2 bg-amber-100 bg-transparent">
+          <h2>Not satisfied with response?</h2>
+          You can request new feedback by clicking on one of the following
+          buttons that best describes your situation. If you want to share
+          additional notes, you can also type them in the text box below.
+          <Show when={notSatisfiedMessage().trim().length > 0}>
+            <blockquote>{notSatisfiedMessage()}</blockquote>
+          </Show>
+          <div class="flex flex-col gap-2 m-6 place-content-between">
+            <For each={promptResponse}>
+              {(response) => (
+                <button
+                  class="rounded-lg p-2 border-gray-800 border-2 bg-white"
+                  onClick={() => {
+                    if (notSatisfiedNote().trim().length > 0) {
+                      updatePrompt(uuid, [
+                        ...messages().messages,
+                        response[1],
+                        {
+                          role: "user",
+                          content: notSatisfiedNote(),
+                          name: "Student",
+                        },
+                      ]);
+                    } else {
+                      updatePrompt(uuid, [...messages().messages, response[1]]);
+                    }
+                  }}
+                >
+                  {response[0]}
+                </button>
+              )}
+            </For>
+            <textarea
+              class="rounded-lg p-6 border-gray-800 border-2 w-full border-dashed "
+              onInput={(e) => {
+                if (e.isTrusted) {
+                  setNotSatisfiedNote(e.currentTarget.value);
+                }
+              }}
+              placeholder="Optionally provide additional notes here before clicking a button above. Please keep it short, otherwise it might error out."
+            ></textarea>
+          </div>
         </div>
         <hr />
         <h2>Information shared with AI</h2>
