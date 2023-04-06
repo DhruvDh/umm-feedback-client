@@ -197,7 +197,7 @@ export default function Messages(props: MessagesProps) {
     <Show when={feedbackDone()}>
       <article class="mx-auto p-4 prose max-w-3xl">
         <hr />
-        <div class="rounded-3xl pl-6 pr-6 pt-0.5 pb-2 bg-amber-100 bg-transparent">
+        <div class="rounded-3xl pl-6 pr-6 pt-0.5 pb-2 bg-amber-100">
           <h2>Not satisfied with response?</h2>
           You can request new feedback by clicking on one of the following
           buttons that best describes your situation. If you want to share
