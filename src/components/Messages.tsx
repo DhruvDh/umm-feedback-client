@@ -77,11 +77,20 @@ const getQuery = async (uuid: string): Promise<PromptRow> => {
 
 const promptResponse: Array<[string, ChatCompletionRequestMessage]> = [
   [
+    "Your suggestions are too broad and vague.",
+    {
+      role: "user",
+      content:
+        "Thank you for your feedback, but your suggestions seem too vague for me to follow. Could you please provide more specific and actionable feedback, ideally in a step-by-step format?",
+      name: "Student",
+    },
+  ],
+  [
     "I don't understand.",
     {
       role: "user",
       content:
-        "Thank you for your feedback. I'm having trouble understanding it. Could you please rephrase or provide more context, and take a moment to think it over before sharing your explanation to help me grasp the concept more easily?",
+        "I appreciate your feedback, but I'm having trouble understanding it. Please rephrase your explanation or provide more context. Take a moment to think it over to help me grasp the concept more easily.",
       name: "Student",
     },
   ],
@@ -90,25 +99,34 @@ const promptResponse: Array<[string, ChatCompletionRequestMessage]> = [
     {
       role: "user",
       content:
-        "Thank you for your feedback. I applied the changes you recommended, and they were effective. However, I'm still unclear on the underlying reasons for their success. Please think it over and explain the thought process behind these changes in a way that helps me understand better.",
+        "Thank you for your feedback. I applied your recommended changes, and they worked. However, I'm unclear on the reasons behind their success. Could you please explain the thought process or concepts that led to these changes?",
       name: "Student",
     },
   ],
   [
-    "Changes requested are already in my code.",
+    "The changes you suggested are unnecessary or already implemented in my submission.",
     {
       role: "user",
       content:
-        "Thank you for your feedback. I believe I've already implemented the changes you suggested. Please think it over and review my work once more, pointing out any other areas that are problematic or need improvement.",
+        "Thanks for your feedback. I believe I've already implemented the changes you suggested or that they are redundant. Could you please review my work again and point out any other areas that need improvement or clarification?",
       name: "Student",
     },
   ],
   [
-    "This explanation is incorrect.",
+    "Request alternate explanation/solution.",
     {
       role: "user",
       content:
-        "Thank you for your feedback. I'm not sure if the issue you pointed out is the root cause of the problem. Please think it over and review my work again, letting me know if there are any other concerns or areas that need attention after your careful consideration",
+        "Thank you for your feedback. However, I'm wondering if there's an alternate explanation or solution to the problem. Could you please think it over and provide another approach?",
+      name: "Student",
+    },
+  ],
+  [
+    "This explanation seems incorrect.",
+    {
+      role: "user",
+      content:
+        "Thank you for your feedback. However, I'm not convinced that the issue you pointed out is the root cause of the problem. Could you please review my work again and let me know if there are other concerns or areas that need attention after carefully considering the problem?",
       name: "Student",
     },
   ],
