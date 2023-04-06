@@ -117,7 +117,7 @@ const promptResponse: Array<[string, ChatCompletionRequestMessage]> = [
     {
       role: "user",
       content:
-        "Thank you for your feedback. However, I'm wondering if there's an alternate explanation or solution to the problem. Could you please think it over and provide another approach?",
+        "Thank you for your feedback. However, I'm wondering if there's an alternate explanation or solution to the problem. Could you please think it over and provide another approach? Please ensure that the alternative you offer is meaningfuly different from this one.",
       name: "Student",
     },
   ],
@@ -198,10 +198,12 @@ export default function Messages(props: MessagesProps) {
       <article class="mx-auto p-4 prose max-w-3xl">
         <hr />
         <h2>Not satisfied with response?</h2>
+        You can request new feedback by clicking on one of the following buttons
+        that best describes your situation. If you want to share additional
+        notes, you can also type them in the text box below.
         <Show when={notSatisfiedMessage().trim().length > 0}>
           <blockquote>{notSatisfiedMessage()}</blockquote>
         </Show>
-
         <div class="flex flex-col gap-2 m-6 place-content-between">
           <For each={promptResponse}>
             {(response) => (
