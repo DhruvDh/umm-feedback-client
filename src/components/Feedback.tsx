@@ -30,7 +30,7 @@ interface PromptRow {
 
 const supabase = createClient(
   "https://uyancztmzjlekojeproj.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5YW5jenRtempsZWtvamVwcm9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NjA4NDA1NzgsImV4cCI6MTk3NjQxNjU3OH0.yMvOYM0AM61v6MRsHUSgO0BPrQHTde2AiKzE0b4H4lo"
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5YW5jenRtempsZWtvamVwcm9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NjA4NDA1NzgsImV4cCI6MTk3NjQxNjU3OH0.yMvOYM0AM61v6MRsHUSgO0BPrQHTde2AiKzE0b4H4lo",
 );
 
 const getQuery = async (uuid: string): Promise<PromptRow> => {
@@ -79,7 +79,7 @@ export default function Feedback() {
       setConnectionMessage("Loading...");
     } else if (getPrompt.error) {
       setConnectionMessage(
-        "Error finding ID in database. Is the URL correct?."
+        "Error finding ID in database. Is the URL correct?.",
       );
     } else {
     }
@@ -129,22 +129,17 @@ export default function Feedback() {
               response.status < 500 &&
               response.status !== 429
             ) {
-              setConnectionMessage(
-                "Fatal error: " +
-                  JSON.stringify(response) +
-                  "\nIt is likely the conversation is too long."
-              );
-              ctrl.abort(
-                "Fatal error: " +
-                  JSON.stringify(response) +
-                  "\nIt is likely the conversation is too long."
-              );
+              let m = `Fatal error (status ${response.status}): ` +
+                JSON.stringify(response) +
+                "\nIt is likely the conversation is too long or malformed.";
+              setConnectionMessage(m);
+              ctrl.abort(m);
               // client-side errors are usually non-retriable:
               throw new FatalError();
             } else {
               setConnectionMessage(
                 "Retriable error (something has gone wrong that is not fatal, you should be able to retry in a few minutes.): " +
-                  response.statusText
+                  response.statusText,
               );
 
               throw new RetriableError();
@@ -157,12 +152,12 @@ export default function Feedback() {
               setConnectionMessage(
                 "Fatal error: " +
                   JSON.stringify(msg) +
-                  "\nIt is likely the conversation is too long."
+                  "\nIt is likely the conversation is too long.",
               );
               ctrl.abort(
                 "Fatal error: " +
-                  JSON.stringify(msg.data) +
-                  "\nIt is likely the conversation is too long."
+                  JSON.stringify(msg) +
+                  "\nIt is likely the conversation is too long.",
               );
 
               throw new FatalError(msg.data);
@@ -177,7 +172,7 @@ export default function Feedback() {
                   (prev === undefined ? "" : prev) +
                   (val.choices[0].delta.content === undefined
                     ? ""
-                    : val.choices[0].delta.content)
+                    : val.choices[0].delta.content),
               );
               if (val.choices[0].finish_reason !== null) {
                 setFeedbackDone(true);
@@ -197,10 +192,10 @@ export default function Feedback() {
               ctrl.abort("Done!");
             } else {
               setConnectionMessage(
-                "Connection closed unexpectedly. (something has gone wrong that is not fatal, you should be able to retry in a few minutes.)"
+                "Connection closed unexpectedly. (something has gone wrong that is not fatal, you should be able to retry in a few minutes.)",
               );
               ctrl.abort(
-                "Connection closed unexpectedly. (something has gone wrong that is not fatal, you should be able to retry in a few minutes.)"
+                "Connection closed unexpectedly. (something has gone wrong that is not fatal, you should be able to retry in a few minutes.)",
               );
 
               // if the server closes the connection unexpectedly, retry:
@@ -219,18 +214,18 @@ export default function Feedback() {
               throw err;
             }
           },
-        }
+        },
       );
     }
   });
 
   return (
     <article class="mx-auto p-4 prose max-w-3xl">
-      <h1> {getPrompt()?.reqName}</h1>
-      <h3> {getPrompt()?.grade}</h3>
+      <h1>{getPrompt()?.reqName}</h1>
+      <h3>{getPrompt()?.grade}</h3>
       <h3>{getPrompt()?.reason}</h3>
       <hr />
-      <h2> AI Feedback </h2>
+      <h2>AI Feedback</h2>
       <Switch
         fallback={
           <blockquote>Something is wrong. Cannot generate feedback.</blockquote>

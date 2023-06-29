@@ -19,7 +19,7 @@ interface MessagesProps {
 
 const supabase = createClient(
   "https://uyancztmzjlekojeproj.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5YW5jenRtempsZWtvamVwcm9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NjA4NDA1NzgsImV4cCI6MTk3NjQxNjU3OH0.yMvOYM0AM61v6MRsHUSgO0BPrQHTde2AiKzE0b4H4lo"
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5YW5jenRtempsZWtvamVwcm9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NjA4NDA1NzgsImV4cCI6MTk3NjQxNjU3OH0.yMvOYM0AM61v6MRsHUSgO0BPrQHTde2AiKzE0b4H4lo",
 );
 
 interface PromptRow {
@@ -48,23 +48,6 @@ const getQuery = async (uuid: string): Promise<PromptRow> => {
     reason = "See below.";
   }
   let messages: ChatCompletionRequestMessage[] = data.messages ?? [];
-  let previousPrompt = data.previousPrompt;
-
-  if (data["previousPrompt"] !== null) {
-    const { data, error } = await supabase
-      .from("feedback")
-      .select("*")
-      .eq("id", previousPrompt)
-      .single();
-
-    messages.push({
-      role: "assistant",
-      content: data.response,
-      name: "AI Teaching Assistant",
-    });
-  } else {
-    console.log("No previous prompt found.");
-  }
 
   return {
     id: uuid,
@@ -135,7 +118,7 @@ const promptResponse: Array<[string, ChatCompletionRequestMessage]> = [
 export default function Messages(props: MessagesProps) {
   const { uuid, feedbackDone } = mergeProps(
     { uuid: "", feedbackDone: () => false },
-    props
+    props,
   );
   const [messages] = createResource(uuid, getQuery);
 
@@ -154,9 +137,12 @@ export default function Messages(props: MessagesProps) {
       let result = "";
       for (const message of messages().messages) {
         const name = message.name ?? message.role;
+
         const text = message.content;
 
-        result += `\n\n### ${name} Message\n\n${text}`;
+        result += name == "assistant"
+          ? `\n\n### AI Teaching Assistant Message\n\n${text}`
+          : `\n\n### ${name} Message\n\n${text}`;
       }
 
       setMarkdown(result);
@@ -165,31 +151,53 @@ export default function Messages(props: MessagesProps) {
 
   const updatePrompt = function (
     uuid: string,
-    newMessages: ChatCompletionRequestMessage[]
+    newMessages: ChatCompletionRequestMessage[],
   ) {
     setNotSatisfiedMessage("Updating prompt...");
     supabase
-      .from("prompts")
-      .insert({
-        messages: newMessages,
-        length: (messages().length ?? 0) + 1,
-        previousPrompt: uuid,
-        grade: messages().grade,
-        reason: messages().reason,
-        requirement_name: messages().reqName,
-        status: "not_started",
-      })
-      .select()
+      .from("feedback")
+      .select("*")
+      .eq("id", uuid)
       .single()
       .then(({ data, error }) => {
         if (error) {
-          setNotSatisfiedMessage("Error updating prompt: " + error.message);
+          setNotSatisfiedMessage(
+            "Error updating prompt, when getting previous prompt: " +
+              error.message,
+          );
           throw error;
-        } else {
-          setNotSatisfiedMessage("Navigating to prompt...");
-          console.log(data);
-          window.open(`/${data.id}`, "_blank");
         }
+
+        supabase
+          .from("prompts")
+          .insert({
+            messages: [
+              ...messages().messages,
+              {
+                role: "assistant",
+                content: data.response,
+              },
+              ...newMessages,
+            ],
+            length: (messages().length ?? 0) + 1,
+            previousPrompt: uuid,
+            grade: messages().grade,
+            reason: messages().reason,
+            requirement_name: messages().reqName,
+            status: "not_started",
+          })
+          .select()
+          .single()
+          .then(({ data, error }) => {
+            if (error) {
+              setNotSatisfiedMessage("Error updating prompt: " + error.message);
+              throw error;
+            } else {
+              setNotSatisfiedMessage("Navigating to prompt...");
+              console.log(data);
+              window.open(`/${data.id}`, "_blank");
+            }
+          });
       });
   };
 
@@ -213,7 +221,6 @@ export default function Messages(props: MessagesProps) {
                   onClick={() => {
                     if (notSatisfiedNote().trim().length > 0) {
                       updatePrompt(uuid, [
-                        ...messages().messages,
                         response[1],
                         {
                           role: "user",
@@ -222,7 +229,7 @@ export default function Messages(props: MessagesProps) {
                         },
                       ]);
                     } else {
-                      updatePrompt(uuid, [...messages().messages, response[1]]);
+                      updatePrompt(uuid, [response[1]]);
                     }
                   }}
                 >
@@ -238,7 +245,8 @@ export default function Messages(props: MessagesProps) {
                 }
               }}
               placeholder="Optionally provide additional notes here before clicking a button above. Please keep it short, otherwise it might error out."
-            ></textarea>
+            >
+            </textarea>
           </div>
         </div>
         <hr />
