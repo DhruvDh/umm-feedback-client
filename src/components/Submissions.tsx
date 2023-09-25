@@ -1,5 +1,4 @@
 import { createEffect, createResource, createSignal } from "solid-js";
-import { ChatCompletionRequestMessage } from "openai";
 import { micromark } from "micromark";
 import { gfm, gfmHtml } from "micromark-extension-gfm";
 import { createClient } from "@supabase/supabase-js";

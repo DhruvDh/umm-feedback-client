@@ -3,9 +3,6 @@ import {
   createEffect,
   createResource,
   createSignal,
-  For,
-  mergeProps,
-  Show,
 } from "solid-js";
 import { ChatCompletionRequestMessage } from "openai";
 import { micromark } from "micromark";

@@ -10,48 +10,12 @@ import {
 import { ChatCompletionRequestMessage } from "openai";
 import { micromark } from "micromark";
 import { gfm, gfmHtml } from "micromark-extension-gfm";
-import { supabase } from "../App";
+import { supabase, getQuery } from "../App";
 
 interface MessagesProps {
   uuid: string;
   feedbackDone: Accessor<boolean>;
 }
-
-interface PromptRow {
-  id: string;
-  reqName: string;
-  grade: string;
-  reason: string;
-  messages: ChatCompletionRequestMessage[];
-  length?: number;
-  previousPrompt?: string;
-}
-
-const getQuery = async (uuid: string): Promise<PromptRow> => {
-  const { data, error } = await supabase
-    .from("prompts")
-    .select("*")
-    .eq("id", uuid)
-    .single();
-
-  if (error) throw error;
-
-  let reqName = data.requirement_name ?? "ITSC 2214 Autograder Feedback";
-  let grade = data.grade ?? "Not Found";
-  let reason = data.reason ?? "";
-  if (reason == "See above.") {
-    reason = "See below.";
-  }
-  let messages: ChatCompletionRequestMessage[] = data.messages ?? [];
-
-  return {
-    id: uuid,
-    reqName,
-    grade,
-    reason,
-    messages,
-  };
-};
 
 const promptResponse: Array<[string, ChatCompletionRequestMessage]> = [
   [
