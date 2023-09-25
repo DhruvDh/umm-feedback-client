@@ -8,12 +8,12 @@ import {
   Show,
   Switch,
 } from "solid-js";
-import { createClient } from "@supabase/supabase-js";
 import type { ChatCompletionRequestMessage } from "openai";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { micromark } from "micromark";
 import { gfm, gfmHtml } from "micromark-extension-gfm";
 import Messages from "./Messages";
+import { supabase } from "../App";
 
 class RetriableError extends Error {}
 class FatalError extends Error {}
@@ -28,10 +28,7 @@ interface PromptRow {
   previousPrompt?: string;
 }
 
-const supabase = createClient(
-  "https://uyancztmzjlekojeproj.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5YW5jenRtempsZWtvamVwcm9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NjA4NDA1NzgsImV4cCI6MTk3NjQxNjU3OH0.yMvOYM0AM61v6MRsHUSgO0BPrQHTde2AiKzE0b4H4lo",
-);
+
 
 const getQuery = async (uuid: string): Promise<PromptRow> => {
   const { data, error } = await supabase
@@ -107,7 +104,7 @@ export default function Feedback() {
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "text/event-stream",
             Authorization:
               "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5YW5jenRtempsZWtvamVwcm9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NjA4NDA1NzgsImV4cCI6MTk3NjQxNjU3OH0.yMvOYM0AM61v6MRsHUSgO0BPrQHTde2AiKzE0b4H4lo",
           },
