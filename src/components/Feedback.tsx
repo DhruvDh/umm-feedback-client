@@ -23,6 +23,7 @@ export default function Feedback() {
   const uuid = params["id"];
   const [feedback, setFeedback] = createSignal("");
   const [feedbackDone, setFeedbackDone] = createSignal(false);
+  const [feedbackUploaded, setFeedbackUploaded] = createSignal(false);
   const [getPrompt] = createResource(uuid, getQuery);
 
   const [foundInDB, setFoundInDB] = createSignal(false);
@@ -111,7 +112,10 @@ export default function Feedback() {
             throw new FatalError(msg.data);
           }
           const data = msg.data;
-          if (data == "[DONE]") {
+          if (typeof data === "string" && data.trim() === "[DONE]") {
+            if (!feedbackDone()) {
+              setFeedbackDone(true);
+            }
             return;
           } else {
             const val = JSON.parse(data);
@@ -123,13 +127,9 @@ export default function Feedback() {
                   : val.choices[0].delta.content)
             );
             if (val.choices[0].finish_reason !== null) {
-              setFeedbackDone(true);
-              supabase
-                .from("feedback")
-                .insert({ id: uuid, response: feedback() })
-                .then((res) => {
-                  console.log(res);
-                });
+              if (!feedbackDone()) {
+                setFeedbackDone(true);
+              }
             }
           }
         },
@@ -163,6 +163,17 @@ export default function Feedback() {
           }
         },
       });
+    }
+  });
+  createEffect(() => {
+    if (feedbackDone() && !feedbackUploaded()) {
+      supabase
+        .from("feedback")
+        .insert({ id: uuid, response: feedback() })
+        .then((res) => {
+          console.log(res);
+        });
+      setFeedbackUploaded(true);
     }
   });
 
