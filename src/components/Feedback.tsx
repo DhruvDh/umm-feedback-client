@@ -146,6 +146,7 @@ export default function Feedback() {
               "Connection closed unexpectedly. (something has gone wrong that is not fatal, you should be able to retry in a few minutes.)"
             );
 
+            setFeedbackDone(true);
             // if the server closes the connection unexpectedly, retry:
             throw new RetriableError();
           }
@@ -165,17 +166,19 @@ export default function Feedback() {
       });
     }
   });
-  createEffect(() => {
-    if (feedbackDone() && !feedbackUploaded()) {
-      supabase
-        .from("feedback")
-        .insert({ id: uuid, response: feedback() })
-        .then((res) => {
-          console.log(res);
-        });
-      setFeedbackUploaded(true);
-    }
-  });
+  // createEffect(() => {
+  //   if (feedbackDone() && !feedbackUploaded()) {
+  //     if (!foundInDB()) {
+  //       supabase
+  //         .from("feedback")
+  //         .insert({ id: uuid, response: feedback() })
+  //         .then((res) => {
+  //           console.log(res);
+  //         });
+  //       setFeedbackUploaded(true);
+  //     }
+  //   }
+  // });
 
   return (
     <article class="mx-auto p-4 prose max-w-3xl">
