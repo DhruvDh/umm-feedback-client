@@ -7,7 +7,6 @@ import {
   onMount,
   Switch,
 } from "solid-js";
-import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { micromark } from "micromark";
 import { gfm, gfmHtml } from "micromark-extension-gfm";
 import Messages from "./Messages";
@@ -60,125 +59,19 @@ export default function Feedback() {
       setFeedbackDone(true);
       setFoundInDB(true);
     } catch (e) {
-      await fetchEventSource(`https://umm-feedback-openai.deno.dev/${uuid}`, {
-        method: "GET",
-        signal: ctrl.signal,
-        openWhenHidden: true,
-        async onopen(response) {
-          setConnectionOpened(true);
-          if (
-            response.ok &&
-            response.headers.get("content-type") == "text/event-stream"
-          ) {
-            setConnectionMessage("Connected to OpenAI, loading...");
-            return; // everything's good
-          } else if (
-            response.status >= 400 &&
-            response.status < 500 &&
-            response.status !== 429
-          ) {
-            let m =
-              `Fatal error (status ${response.status}): ` +
-              JSON.stringify(response) +
-              "\nIt is likely the conversation is too long or malformed.";
-            setConnectionMessage(m);
-            ctrl.abort(m);
-            // client-side errors are usually non-retriable:
-            throw new FatalError();
-          } else {
-            setConnectionMessage(
-              "Retriable error (something has gone wrong that is not fatal, you should be able to retry in a few minutes.): " +
-                response.statusText
-            );
+      setConnectionMessage("Connecting to server, loading feedback...");
 
-            throw new RetriableError();
-          }
-        },
-        onmessage(msg) {
-          // if the server emits an error message, throw an exception
-          // so it gets handled by the onerror callback below:
-          if (msg.event === "FatalError") {
-            setConnectionMessage(
-              "Fatal error: " +
-                JSON.stringify(msg) +
-                "\nIt is likely the conversation is too long."
-            );
-            ctrl.abort(
-              "Fatal error: " +
-                JSON.stringify(msg) +
-                "\nIt is likely the conversation is too long."
-            );
-
-            throw new FatalError(msg.data);
-          }
-          const data = msg.data;
-          if (typeof data === "string" && data.trim() === "[DONE]") {
-            if (!feedbackDone()) {
-              setFeedbackDone(true);
-            }
-            return;
-          } else {
-            const val = JSON.parse(data);
-            setFeedback(
-              (prev) =>
-                (prev === undefined ? "" : prev) +
-                (val.choices[0].delta.content === undefined
-                  ? ""
-                  : val.choices[0].delta.content)
-            );
-            if (val.choices[0].finish_reason !== null) {
-              if (!feedbackDone()) {
-                setFeedbackDone(true);
-              }
-            }
-          }
-        },
-        onclose() {
-          if (feedbackDone()) {
-            setConnectionMessage("Done!");
-            setFeedbackDone(true);
-            ctrl.abort("Done!");
-          } else {
-            setConnectionMessage(
-              "Connection closed unexpectedly. (something has gone wrong that is not fatal, you should be able to retry in a few minutes.)"
-            );
-            ctrl.abort(
-              "Connection closed unexpectedly. (something has gone wrong that is not fatal, you should be able to retry in a few minutes.)"
-            );
-
-            setFeedbackDone(true);
-            // if the server closes the connection unexpectedly, retry:
-            throw new RetriableError();
-          }
-        },
-        onerror(err) {
-          if (err.message.trim() == "") {
-            setConnectionMessage("Done!");
-            setFeedbackDone(true);
-            ctrl.abort("Done!");
-            throw err;
-          } else {
-            setConnectionMessage("Error: " + err.message);
-            ctrl.abort("Error: " + err.message);
-            throw err;
-          }
-        },
-      });
+      const resp = await fetch(`http://localhost:8000/${uuid}`);
+      if (resp.status !== 200) {
+        setConnectionMessage("Error: " + resp.statusText);
+      } else {
+        setConnectionMessage("Done!");
+        const respJson = await resp.json();
+        setFeedback(respJson.choices[0].message.content);
+        setFeedbackDone(true);
+      }
     }
   });
-  // createEffect(() => {
-  //   if (feedbackDone() && !feedbackUploaded()) {
-  //     if (!foundInDB()) {
-  //       supabase
-  //         .from("feedback")
-  //         .insert({ id: uuid, response: feedback() })
-  //         .then((res) => {
-  //           console.log(res);
-  //         });
-  //       setFeedbackUploaded(true);
-  //     }
-  //   }
-  // });
 
   return (
     <article class="mx-auto p-4 prose max-w-3xl">
