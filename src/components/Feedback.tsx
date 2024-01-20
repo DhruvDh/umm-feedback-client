@@ -61,7 +61,7 @@ export default function Feedback() {
     } catch (e) {
       setConnectionMessage("Connecting to server, loading feedback...");
 
-      const resp = await fetch(`http://localhost:8000/${uuid}`);
+      const resp = await fetch(`http://umm-feedback-openai.deno.dev/${uuid}`);
       if (resp.status !== 200) {
         setConnectionMessage("Error: " + resp.statusText);
       } else {
