@@ -11,6 +11,7 @@ import { micromark } from "micromark";
 import { gfm, gfmHtml } from "micromark-extension-gfm";
 import Messages from "./Messages";
 import { supabase, getQuery } from "../App";
+import { fetchEventSource } from "@microsoft/fetch-event-source";
 
 class RetriableError extends Error {}
 class FatalError extends Error {}
@@ -61,15 +62,44 @@ export default function Feedback() {
     } catch (e) {
       setConnectionMessage("Connecting to server, loading feedback...");
 
-      const resp = await fetch(`https://umm-feedback-openai.deno.dev/${uuid}`);
-      if (resp.status !== 200) {
-        setConnectionMessage("Error: " + resp.statusText);
-      } else {
-        setConnectionMessage("Done!");
-        const respJson = await resp.json();
-        setFeedback(respJson.choices[0].message.content);
-        setFeedbackDone(true);
-      }
+      await fetchEventSource(`https://umm-feedback-openai.deno.dev/${uuid}`, {
+        method: "GET",
+        signal: ctrl.signal,
+        async onopen(response) {
+          if (
+            response.ok &&
+            response.headers.get("content-type") === "text/event-stream"
+          ) {
+            setConnectionMessage("Connection opened.");
+            setConnectionOpened(true);
+          } else if (
+            response.status >= 400 &&
+            response.status < 500 &&
+            response.status !== 429
+          ) {
+            throw new FatalError();
+          } else {
+            throw new RetriableError();
+          }
+        },
+        onmessage(ev) {
+          const data = JSON.parse(ev.data);
+          setFeedback(data.choices[0].message.content);
+          setFeedbackDone(true);
+        },
+        onclose() {
+          setConnectionMessage("Connection closed.");
+          setConnectionOpened(false);
+        },
+        onerror(err) {
+          if (err instanceof FatalError) {
+            setConnectionMessage("Fatal error occurred.");
+            throw err;
+          } else {
+            setConnectionMessage("Retrying...");
+          }
+        },
+      });
     }
   });
 
