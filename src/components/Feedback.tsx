@@ -39,7 +39,18 @@ export default function Feedback() {
       setConnectionMessage(
         "Error finding ID in database. Is the URL correct?."
       );
-    } else {
+    }
+  });
+
+  createEffect(() => {
+    if (feedbackDone() && !feedbackUploaded() && !foundInDB()) {
+      supabase
+        .from("feedback")
+        .insert({ id: uuid, response: feedback() })
+        .then((res) => {
+          console.log(res);
+        });
+      setFeedbackUploaded(true);
     }
   });
 
@@ -79,25 +90,28 @@ export default function Feedback() {
           ) {
             throw new FatalError();
           } else {
+            console.log("Retrying... ", response);
             throw new RetriableError();
           }
         },
         onmessage(ev) {
           const data = JSON.parse(ev.data);
-          setFeedback(data.choices[0].message.content);
-          setFeedbackDone(true);
+          if (feedback() === undefined) {
+            setFeedback(data.data);
+            // check if data has a key called 'data'
+          } else if (data.data) {
+            setFeedback(feedback() + data.data);
+          } else if (data.done) {
+            setFeedbackDone(true);
+          }
         },
         onclose() {
           setConnectionMessage("Connection closed.");
           setConnectionOpened(false);
         },
         onerror(err) {
-          if (err instanceof FatalError) {
-            setConnectionMessage("Fatal error occurred.");
-            throw err;
-          } else {
-            setConnectionMessage("Retrying...");
-          }
+          setConnectionMessage("Fatal error occurred.");
+          throw err;
         },
       });
     }
