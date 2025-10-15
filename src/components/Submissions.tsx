@@ -1,17 +1,9 @@
 import { createEffect, createResource, createSignal } from "solid-js";
-import { micromark } from "micromark";
-import { gfm, gfmHtml } from "micromark-extension-gfm";
-import { createClient } from "@supabase/supabase-js";
 import { useParams } from "@solidjs/router";
-
-interface SubmissionProps {
-  uuid: string;
-}
-
-const supabase = createClient(
-  "https://uyancztmzjlekojeproj.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5YW5jenRtempsZWtvamVwcm9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NjA4NDA1NzgsImV4cCI6MTk3NjQxNjU3OH0.yMvOYM0AM61v6MRsHUSgO0BPrQHTde2AiKzE0b4H4lo",
-);
+import { z } from "zod";
+import { supabase } from "../lib/supabase";
+import SafeMarkdown from "./SafeMarkdown";
+import { isValidUUID } from "../lib/validators";
 
 interface SubmissionRow {
   id: string;
@@ -19,6 +11,13 @@ interface SubmissionRow {
   term: string;
   content: string;
 }
+
+const SubmissionSchema = z.object({
+  id: z.string(),
+  course: z.string().nullish(),
+  term: z.string().nullish(),
+  content: z.string().nullish(),
+});
 
 const getQuery = async (uuid: string): Promise<SubmissionRow> => {
   const { data, error } = await supabase
@@ -29,43 +28,44 @@ const getQuery = async (uuid: string): Promise<SubmissionRow> => {
 
   if (error) throw error;
 
-  let course = data.course ?? "No course specified";
-  let term = data.term ?? "No term specified";
-  let content = data.content ?? "No content specified";
+  const parsed = SubmissionSchema.parse(data);
 
   return {
     id: uuid,
-    course,
-    term,
-    content,
+    course: parsed.course ?? "No course specified",
+    term: parsed.term ?? "No term specified",
+    content: parsed.content ?? "No content specified",
   };
 };
 
-export default function Submissions(props: SubmissionProps) {
+export default function Submissions() {
   const params = useParams();
   const uuid = params["id"];
-  const [submission] = createResource(uuid, getQuery);
+  const [submission] = createResource(
+    () => (isValidUUID(uuid) ? uuid : false),
+    async (id: string) => getQuery(id),
+  );
 
   const [markdown, setMarkdown] = createSignal("");
 
   createEffect(() => {
-    if (submission.loading) {
+    if (!isValidUUID(uuid)) {
+      setMarkdown("Invalid ID.");
+    } else if (submission.loading) {
       setMarkdown("Loading...");
     } else if (submission.error) {
-      setMarkdown("Error loading messages.");
+      setMarkdown("Error loading submission.");
     } else {
-      setMarkdown(submission().content);
+      const current = submission();
+      if (current) {
+        setMarkdown(current.content);
+      }
     }
   });
 
   return (
     <article class="mx-auto prose max-w-3xl">
-      <div
-        innerHTML={micromark(markdown(), {
-          extensions: [gfm()],
-          htmlExtensions: [gfmHtml()],
-        })}
-      />
+      <SafeMarkdown source={markdown()} />
     </article>
   );
 }

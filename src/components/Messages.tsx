@@ -7,17 +7,19 @@ import {
   mergeProps,
   Show,
 } from "solid-js";
-import { ChatCompletionRequestMessage } from "openai";
-import { micromark } from "micromark";
-import { gfm, gfmHtml } from "micromark-extension-gfm";
-import { supabase, getQuery } from "../App";
+import { useNavigate } from "@solidjs/router";
+import type { ChatMessage } from "../lib/chat";
+import { supabase } from "../lib/supabase";
+import { getPromptById } from "../lib/prompts";
+import SafeMarkdown from "./SafeMarkdown";
+import { isValidUUID } from "../lib/validators";
 
 interface MessagesProps {
   uuid: string;
   feedbackDone: Accessor<boolean>;
 }
 
-const promptResponse: Array<[string, ChatCompletionRequestMessage]> = [
+const promptResponse: Array<[string, ChatMessage]> = [
   [
     "Your suggestions are too broad and vague.",
     {
@@ -79,7 +81,11 @@ export default function Messages(props: MessagesProps) {
     { uuid: "", feedbackDone: () => false },
     props,
   );
-  const [messages] = createResource(uuid, getQuery);
+  const navigate = useNavigate();
+  const [prompt] = createResource(
+    () => (isValidUUID(uuid) ? uuid : false),
+    async (id: string) => getPromptById(id),
+  );
 
   const [notSatisfiedMessage, setNotSatisfiedMessage] = createSignal("");
   const [notSatisfiedNote, setNotSatisfiedNote] = createSignal("", {
@@ -88,76 +94,107 @@ export default function Messages(props: MessagesProps) {
   const [markdown, setMarkdown] = createSignal("");
 
   createEffect(() => {
-    if (messages.loading) {
+    if (!isValidUUID(uuid)) {
+      setMarkdown("Invalid ID.");
+    } else if (prompt.loading) {
       setMarkdown("Loading...");
-    } else if (messages.error) {
+    } else if (prompt.error) {
       setMarkdown("Error loading messages.");
     } else {
       let result = "";
-      for (const message of messages().messages) {
-        const name = message.name ?? message.role;
+      const current = prompt();
+      if (current) {
+        for (const message of current.messages) {
+          const name = message.name ?? message.role;
+          const text = message.content;
 
-        const text = message.content;
-
-        result += name == "assistant"
-          ? `\n\n### AI Teaching Assistant Message\n\n${text}`
-          : `\n\n### ${name} Message\n\n${text}`;
+          result += name == "assistant"
+            ? `\n\n### AI Teaching Assistant Message\n\n${text}`
+            : `\n\n### ${name} Message\n\n${text}`;
+        }
       }
 
       setMarkdown(result);
     }
   });
 
-  const updatePrompt = function (
+  const updatePrompt = async (
     uuid: string,
-    newMessages: ChatCompletionRequestMessage[],
-  ) {
-    setNotSatisfiedMessage("Updating prompt...");
-    supabase
-      .from("feedback")
-      .select("*")
-      .eq("id", uuid)
-      .single()
-      .then(({ data, error }) => {
-        if (error) {
-          setNotSatisfiedMessage(
-            "Error updating prompt, when getting previous prompt: " +
-              error.message,
-          );
-          throw error;
-        }
+    newMessages: ChatMessage[],
+  ) => {
+    try {
+      if (!isValidUUID(uuid)) {
+        setNotSatisfiedMessage("Invalid ID.");
+        return;
+      }
 
-        supabase
-          .from("prompts")
-          .insert({
-            messages: [
-              ...messages().messages,
-              {
-                role: "assistant",
-                content: data.response,
-              },
-              ...newMessages,
-            ],
-            length: (messages().length ?? 0) + 1,
-            previousPrompt: uuid,
-            grade: messages().grade,
-            reason: messages().reason,
-            requirement_name: messages().reqName,
-            status: "not_started",
-          })
-          .select()
-          .single()
-          .then(({ data, error }) => {
-            if (error) {
-              setNotSatisfiedMessage("Error updating prompt: " + error.message);
-              throw error;
-            } else {
-              setNotSatisfiedMessage("Navigating to prompt...");
-              console.log(data);
-              window.open(`/${data.id}`, "_blank");
-            }
-          });
-      });
+      const current = prompt();
+      if (!current) {
+        setNotSatisfiedMessage("Prompt data has not loaded yet.");
+        return;
+      }
+
+      setNotSatisfiedMessage("Updating prompt...");
+      const { data, error } = await supabase
+        .from("feedback")
+        .select("response")
+        .eq("id", uuid)
+        .maybeSingle();
+
+      if (error) {
+        setNotSatisfiedMessage(
+          "Error updating prompt, when getting previous prompt: " +
+            error.message,
+        );
+        console.error(error);
+        return;
+      }
+
+      const response = data?.response;
+      if (typeof response !== "string" || response.trim().length === 0) {
+        setNotSatisfiedMessage("No existing feedback available to extend.");
+        return;
+      }
+
+      const { data: inserted, error: insertError } = await supabase
+        .from("prompts")
+        .insert({
+          messages: [
+            ...current.messages,
+            {
+              role: "assistant",
+              content: response,
+            },
+            ...newMessages,
+          ],
+          length: (current.length ?? 0) + 1,
+          previousPrompt: uuid,
+          grade: current.grade,
+          reason: current.reason,
+          requirement_name: current.reqName,
+          status: "not_started",
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        setNotSatisfiedMessage("Error updating prompt: " + insertError.message);
+        console.error(insertError);
+        return;
+      }
+
+      if (!inserted || !inserted.id) {
+        setNotSatisfiedMessage("Unable to load new prompt.");
+        return;
+      }
+
+      setNotSatisfiedMessage("Navigating to prompt...");
+      console.log(inserted);
+      navigate(`/${inserted.id}`);
+    } catch (err) {
+      console.error(err);
+      setNotSatisfiedMessage("Unexpected error updating prompt.");
+    }
   };
 
   return (
@@ -178,17 +215,18 @@ export default function Messages(props: MessagesProps) {
                 <button
                   class="rounded-lg p-2 border-gray-800 border-2 bg-white"
                   onClick={() => {
-                    if (notSatisfiedNote().trim().length > 0) {
-                      updatePrompt(uuid, [
+                    const note = notSatisfiedNote().trim();
+                    if (note.length > 0) {
+                      void updatePrompt(uuid, [
                         response[1],
                         {
                           role: "user",
-                          content: notSatisfiedNote(),
+                          content: note,
                           name: "Student",
                         },
                       ]);
                     } else {
-                      updatePrompt(uuid, [response[1]]);
+                      void updatePrompt(uuid, [response[1]]);
                     }
                   }}
                 >
@@ -216,12 +254,7 @@ export default function Messages(props: MessagesProps) {
           information is missing, that might be why the AI's feedback is not as
           helpful.
         </blockquote>
-        <div
-          innerHTML={micromark(markdown(), {
-            extensions: [gfm()],
-            htmlExtensions: [gfmHtml()],
-          })}
-        />
+        <SafeMarkdown source={markdown()} />
       </article>
     </Show>
   );
